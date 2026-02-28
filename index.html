@@ -1,0 +1,219 @@
+ <!DOCTYPE html>
+<html>
+<head>
+<title>Meghvardhan Shinde | MS Salary Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{
+    font-family: Arial;
+    background:#0f172a;
+    color:white;
+    text-align:center;
+}
+.container{
+    background:#1e293b;
+    padding:20px;
+    border-radius:12px;
+    max-width:800px;
+    margin:auto;
+}
+input, select{
+    padding:8px;
+    margin:5px;
+}
+button{
+    padding:8px 12px;
+    background:#22c55e;
+    border:none;
+    color:white;
+    cursor:pointer;
+    margin:5px;
+}
+table{
+    width:100%;
+    margin-top:15px;
+    border-collapse: collapse;
+}
+th, td{
+    border:1px solid white;
+    padding:6px;
+}
+canvas{
+    background:white;
+    margin-top:20px;
+}
+.summary{
+    margin-top:15px;
+    font-size:18px;
+}
+.footer{
+    margin-top:20px;
+    font-size:14px;
+    opacity:0.7;
+}
+</style>
+</head>
+
+<body>
+
+<h1>MS Work Dashboard</h1>
+<h3>Satyam Kirana | Managed by Meghvardhan Shinde</h3>
+
+<div class="container">
+
+<p>1 Hour = ₹35 | Default Day = 5 Hours</p>
+
+<input type="date" id="date">
+<input type="number" id="hours" placeholder="Enter Hours (default 5)">
+<select id="status">
+<option value="Work">Work</option>
+<option value="Holiday">Holiday</option>
+</select>
+
+<button onclick="addEntry()">Add Entry</button>
+<button onclick="downloadPDF()">Download PDF</button>
+<button onclick="resetData()">Reset</button>
+
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Hours</th>
+<th>Status</th>
+<th>Salary</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+<div class="summary" id="summary"></div>
+
+<canvas id="salaryChart"></canvas>
+
+</div>
+
+<div class="footer">
+© 2026 Meghvardhan Shinde | Personal Salary Tracking System
+</div>
+
+<script>
+
+let rate = 35;
+let defaultHours = 5;
+
+let entries = JSON.parse(localStorage.getItem("msData")) || [];
+
+function save(){
+localStorage.setItem("msData", JSON.stringify(entries));
+}
+
+function addEntry(){
+let date = document.getElementById("date").value;
+let hours = document.getElementById("hours").value || defaultHours;
+let status = document.getElementById("status").value;
+
+if(date===""){
+alert("Enter date");
+return;
+}
+
+hours = parseFloat(hours);
+let salary = 0;
+
+if(status==="Work"){
+salary = hours * rate;
+}
+
+entries.push({date,hours,status,salary});
+save();
+render();
+}
+
+function render(){
+
+let body = document.getElementById("tableBody");
+body.innerHTML="";
+
+let totalHours=0;
+let totalSalary=0;
+let workDays=0;
+let holidays=0;
+
+let labels=[];
+let data=[];
+
+entries.forEach(e=>{
+
+if(e.status==="Work"){
+workDays++;
+totalHours+=e.hours;
+totalSalary+=e.salary;
+labels.push(e.date);
+data.push(e.salary);
+}else{
+holidays++;
+}
+
+body.innerHTML+=
+"<tr><td>"+e.date+"</td><td>"+e.hours+"</td><td>"+e.status+"</td><td>"+e.salary+"</td></tr>";
+});
+
+document.getElementById("summary").innerHTML=
+"Work Days: "+workDays+
+" | Holidays: "+holidays+
+"<br>Total Hours: "+totalHours+
+"<br>Total Salary: ₹"+totalSalary+
+"<br>30-Day Projection: ₹"+(defaultHours*rate*30);
+
+drawChart(labels,data);
+}
+
+let chart;
+
+function drawChart(labels,data){
+if(chart) chart.destroy();
+chart = new Chart(document.getElementById("salaryChart"),{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Daily Salary",
+data:data,
+backgroundColor:"#22c55e"
+}]
+}
+});
+}
+
+function downloadPDF(){
+const { jsPDF } = window.jspdf;
+let doc = new jsPDF();
+doc.text("Salary Report - Satyam Kirana",20,20);
+doc.text("Managed by Meghvardhan Shinde",20,28);
+
+let y=40;
+entries.forEach(e=>{
+doc.text(`${e.date} | ${e.status} | Hours:${e.hours} | ₹${e.salary}`,20,y);
+y+=8;
+});
+
+doc.save("Meghvardhan-Shinde-Salary-Report.pdf");
+}
+
+function resetData(){
+if(confirm("Reset all data?")){
+localStorage.removeItem("msData");
+entries=[];
+render();
+}
+}
+
+render();
+
+</script>
+</body>
+</html>
